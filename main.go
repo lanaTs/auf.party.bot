@@ -2,17 +2,25 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
+	"auf.party.bot/api"
 	"auf.party.bot/logger"
+	"github.com/joho/godotenv"
 	"gopkg.in/telebot.v3"
 )
 
 func main() {
+	//load logger
 	logger := logger.SetupLogger()
 	logger.Info("Starting telegram bot...")
+
+	//load .env
+	err := godotenv.Load()
+	if err != nil {
+		logger.Warn("No .env file found, using system environment variables")
+	}
 
 	pref, err := loadConfig()
 	if err != nil {
@@ -21,25 +29,25 @@ func main() {
 
 	bot, err := telebot.NewBot(pref)
 	if err != nil {
-		log.Fatal("Can not create bot because:", err)
+		logger.Error("Can not create bot because:", err)
 		return
 	}
 
-	fmt.Println("bot created")
+	logger.Info("Telegram bot created")
+	// fmt.Println("bot created")
 
-	bot.Handle("/start", func(c telebot.Context) error {
-		return c.Send("hello my friend")
-	})
+	handlers := api.NewHandlers(logger)
+	handlers.SetupHandlers(bot)
 
-	fmt.Println("Bot started...")
+	logger.Info("Telegram bot started")
+	// fmt.Println("Telegram bot started")
 	bot.Start()
 }
 
 func loadConfig() (telebot.Settings, error) {
 	token := os.Getenv("BOT_TOKEN")
 	if token == "" { //todo create normal env
-		token = ""
-		//return telebot.Settings{}, fmt.Errorf("Environment variable 'BOT_TOKEN' should not be empty") // todo error
+		return telebot.Settings{}, fmt.Errorf("Environment variable 'BOT_TOKEN' should not be empty")
 	}
 
 	pref := telebot.Settings{
